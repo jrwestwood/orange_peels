@@ -1,5 +1,6 @@
 ﻿-- Query to Identify Promotions in TPM with potentially imcomplete Assortment relative to the customers Shipment History/Demand Plan
 DECLARE VARIABLE var_actual STRING DEFAULT 'public.Actual';
+DECLARE VARIABLE var_today DATE DEFAULT current_date();
 WITH SAC AS (
 SELECT
   LPAD(CUSTOMER,10,'0') AS SAC_CUSTOMER,
@@ -37,6 +38,7 @@ SAC_DIM1 AS (
     dim_prod.PRODUCTHIERARCHY_L5_TEXT,
     concat(dim_prod.PRODUCTHIERARCHY_L3_TEXT," ",dim_prod.PRODUCTHIERARCHY_L5_TEXT) as SubBrandVolumeSize,
     SAC.PRODUCT,
+    dim_prod.ZZ1_ISLPROD_PRD as PROD_LONG_NAME,
     SUM(SHIPPED_CS) AS SHIPPED_CS
     FROM SAC
     LEFT JOIN uc_prod.dw_s_md.s_mdm_cv_dim_customer dim_cust
@@ -50,6 +52,15 @@ SAC_DIM1 AS (
 )
 ,
 
+IBP1 AS (
+
+    SELECT 
+        *,
+        CONCAT(LEFT(LPAD(PROD_ID,18,'0'),17),'0') AS PRODUCT
+    FROM uc_prod.dw_s_ibp.s_am_ibp_shipments_forecast_uc
+
+),
+
 IBP AS(
             SELECT 
             dim_cust.CUSTOMERNAME1,
@@ -57,27 +68,28 @@ IBP AS(
             dim_cust.CUSTOMERNAME3,
             dim_cust.CUSTOMERNAME4,
             dim_cust.CUSTOMERNAME5,
-            ibp_prod.TBGPRODHL1DESC AS PRODUCTHIERARCHY_L1_TEXT,
-            ibp_prod.TBGPRODHL2DESC AS PRODUCTHIERARCHY_L2_TEXT,
-            ibp_prod.TBGPRODHL3DESC AS PRODUCTHIERARCHY_L3_TEXT,
-            ibp_prod.TBGPRODHL4DESC AS PRODUCTHIERARCHY_L4_TEXT,
-            ibp_prod.TBGPRODHL5DESC AS PRODUCTHIERARCHY_L5_TEXT,
-            concat(ibp_prod.TBGPRODHL3DESC," ",ibp_prod.TBGPRODHL5DESC) as SubBrandVolumeSize,
-            CONCAT(LEFT(LPAD(PROD_ID,18,'0'),17),'0') AS PRODUCT,
-            SUM(ibp.CONSENSUSDEMANDQTY) as IBP_DEMAND_PLAN
-            FROM uc_prod.dw_s_ibp.s_am_ibp_shipments_forecast_uc ibp
-            LEFT JOIN uc_prod.dw_s_ibp.s_cv_dim_ibp_prdid ibp_prod
-            ON ibp.PROD_ID = ibp_prod.PRDID 
+            dim_prod.PRODUCTHIERARCHY_L1_TEXT,
+            dim_prod.PRODUCTHIERARCHY_L2_TEXT,
+            dim_prod.PRODUCTHIERARCHY_L3_TEXT,
+            dim_prod.PRODUCTHIERARCHY_L4_TEXT,
+            dim_prod.PRODUCTHIERARCHY_L5_TEXT,
+            concat(dim_prod.PRODUCTHIERARCHY_L3_TEXT," ",dim_prod.PRODUCTHIERARCHY_L5_TEXT) as SubBrandVolumeSize,
+            IBP1.PRODUCT,
+            dim_prod.ZZ1_ISLPROD_PRD as PROD_LONG_NAME,
+            SUM(IBP1.CONSENSUSDEMANDQTY) as IBP_DEMAND_PLAN
+            FROM IBP1
+            LEFT JOIN uc_prod.dw_s_md.s_mdm_cv_dim_product dim_prod
+            ON IBP1.PRODUCT = dim_prod.PRODUCT
             LEFT JOIN uc_prod.dw_s_md.s_mdm_cv_dim_customer dim_cust
-            ON dim_cust.CUSTOMER = ibp.CUST_ID
+            ON dim_cust.CUSTOMER = IBP1.CUST_ID
 
             WHERE 
             1=1
             AND dim_cust.SALES_ORGANIZATION = 'US12'
-            AND ibp.PERIOD_ID LIKE "%25-%"
+            AND IBP1.PERIOD_ID LIKE "%25-%"
 
             GROUP BY ALL
-            HAVING SUM(ibp.CONSENSUSDEMANDQTY) > 0
+            HAVING SUM(IBP1.CONSENSUSDEMANDQTY) > 0
 ),
 
 ASSORTMENT AS(
@@ -93,7 +105,8 @@ ASSORTMENT AS(
         PRODUCTHIERARCHY_L4_TEXT,
         PRODUCTHIERARCHY_L5_TEXT,
         SubBrandVolumeSize,
-        PRODUCT
+        PRODUCT,
+        PROD_LONG_NAME
     FROM SAC_DIM1
     UNION
     SELECT 
@@ -108,7 +121,8 @@ ASSORTMENT AS(
         PRODUCTHIERARCHY_L4_TEXT,
         PRODUCTHIERARCHY_L5_TEXT,
         SubBrandVolumeSize,
-        PRODUCT
+        PRODUCT,
+        PROD_LONG_NAME
     FROM IBP
 )
 ,
@@ -165,6 +179,7 @@ tpm AS(
   AND SALESORG = 'US12'
   AND CALYEAR = '2025'
   AND `/BIC/APRMSTD` IN ('Committed')
+  AND CRM_PLTO >= var_today
 
 )
 ,
@@ -175,6 +190,8 @@ SELECT
 DISTINCT
 tpm.CRM_MKTELM as T_CODE,
 tpm.PRODUCT,
+tpm.CRM_PLFR,
+tpm.CRM_PLTO,
 dim_cust.CUSTOMERNAME1,
 dim_cust.CUSTOMERNAME2,
 dim_cust.CUSTOMERNAME3,
@@ -187,6 +204,7 @@ dim_prod.PRODUCTHIERARCHY_L3_TEXT,
 dim_prod.PRODUCTHIERARCHY_L4_TEXT,
 dim_prod.PRODUCTHIERARCHY_L5_TEXT,
 concat(dim_prod.PRODUCTHIERARCHY_L3_TEXT," ",dim_prod.PRODUCTHIERARCHY_L5_TEXT) as SubBrandVolumeSize
+
 FROM tpm
 LEFT JOIN dim_cust
 ON tpm.CUST_SALES = dim_cust.HKUNNR5
