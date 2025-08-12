@@ -1,4 +1,4 @@
-﻿
+
 DECLARE VARIABLE var_period STRING DEFAULT '202509';
 DECLARE VARIABLE var_version STRING DEFAULT 'public.F05';
 DECLARE VARIABLE var_actual STRING DEFAULT 'public.Actual';
