@@ -271,47 +271,53 @@ dim_cust AS(
 ),
 tpm AS(
   SELECT
-    *,
-    CONCAT(LEFT(LPAD(MATERIAL,18,'0'),17),'0') AS SAP_MATERIAL,
+    tpm0.*,
+    CONCAT(LEFT(LPAD(tpm0.MATERIAL,18,'0'),17),'0') AS SAP_MATERIAL,
     CASE
-      WHEN F_SPDTDESC = 'OI %' THEN BIC_ATP_OI
-      WHEN F_SPDTDESC = 'BB Direct %' THEN BIC_ATP_BB
-      WHEN F_SPDTDESC = 'BB Indirect %' THEN BIC_ATP_BBIN
-      WHEN F_SPDTDESC = 'Scan %' THEN BIC_ATT_SCAN
-      WHEN F_SPDTDESC = 'Depletion %' THEN BIC_ATP_DPN
+      WHEN tpm0.F_SPDTDESC = 'OI %' THEN BIC_ATP_OI
+      WHEN tpm0.F_SPDTDESC = 'BB Direct %' THEN BIC_ATP_BB
+      WHEN tpm0.F_SPDTDESC = 'BB Indirect %' THEN BIC_ATP_BBIN
+      WHEN tpm0.F_SPDTDESC = 'Scan %' THEN BIC_ATT_SCAN
+      WHEN tpm0.F_SPDTDESC = 'Depletion %' THEN BIC_ATP_DPN
     END AS ALLOWANCE_PCT,
 
     CASE
-      WHEN F_SPDTDESC = 'OI Rate/Case' THEN BIC_ATT_OI
-      WHEN F_SPDTDESC = 'BB Direct Rate/Case' THEN BIC_ATT_BB
-      WHEN F_SPDTDESC = 'BB Ind. Rate/Case' THEN BIC_ATT_BBIN
-      WHEN F_SPDTDESC = 'Scan Rate/Case' THEN BIC_ATC_SCAN
-      WHEN F_SPDTDESC = 'Depletion Rate/Case' THEN BIC_ATT_DPN
+      WHEN tpm0.F_SPDTDESC = 'OI Rate/Case' THEN BIC_ATT_OI
+      WHEN tpm0.F_SPDTDESC = 'BB Direct Rate/Case' THEN BIC_ATT_BB
+      WHEN tpm0.F_SPDTDESC = 'BB Ind. Rate/Case' THEN BIC_ATT_BBIN
+      WHEN tpm0.F_SPDTDESC = 'Scan Rate/Case' THEN BIC_ATC_SCAN
+      WHEN tpm0.F_SPDTDESC = 'Depletion Rate/Case' THEN BIC_ATT_DPN
     END AS ALLOWANCE_CASE,    
 
     CASE
-      WHEN F_SPDTDESC = 'BB Direct %' THEN BIC_ATA_BBP
-      WHEN F_SPDTDESC = 'BB Direct Rate/Case' THEN BIC_ATA_BBC
-      WHEN F_SPDTDESC = 'BB Indirect %' THEN BIC_ATA_BB_0 -- + BIC_ATA_BBIN
-      WHEN F_SPDTDESC = 'BB Ind. Rate/Case' THEN BIC_ATA_BBIN -- CONFIRM second option BIC_ATL_EDLP
-      WHEN F_SPDTDESC = 'Coupon Fixed' THEN BIC_ATL_CPN --CONFIRM
-      WHEN F_SPDTDESC = 'Depletion %' THEN BIC_ATA_DPNP
-      WHEN F_SPDTDESC = 'Depletion Rate/Case' THEN BIC_ATA_DPNC
-      WHEN F_SPDTDESC = 'Display Fixed' THEN BIC_ATL_DSP  --CONFIRM
-      WHEN F_SPDTDESC = 'Feature Fixed' THEN BIC_ATL_FTR2 --CONFIRM BIC_ATL_FTR is for Lump Sum
-      WHEN F_SPDTDESC = 'Fixed' THEN BIC_ATL_SHLF --CONFIRM
-      WHEN F_SPDTDESC = 'OI %' THEN BIC_ATA_OIP
-      WHEN F_SPDTDESC = 'OI Rate/Case' THEN BIC_ATA_OIC
-      WHEN F_SPDTDESC = 'Scan %' THEN BIC_ATA_SCNP
-      WHEN F_SPDTDESC = 'Scan Rate/Case' THEN BIC_ATA_SCNC
-      WHEN F_SPDTDESC = 'Slotting Fixed' THEN BIC_ATL_SLT  --CONFIRM
+      WHEN tpm0.F_SPDTDESC = 'BB Direct %' THEN BIC_ATA_BBP
+      WHEN tpm0.F_SPDTDESC = 'BB Direct Rate/Case' THEN BIC_ATA_BBC
+      WHEN tpm0.F_SPDTDESC = 'BB Indirect %' THEN BIC_ATA_BB_0 -- + BIC_ATA_BBIN
+      WHEN tpm0.F_SPDTDESC = 'BB Ind. Rate/Case' THEN BIC_ATA_BBIN -- CONFIRM second option BIC_ATL_EDLP
+      WHEN tpm0.F_SPDTDESC = 'Coupon Fixed' THEN BIC_ATL_CPN --CONFIRM
+      WHEN tpm0.F_SPDTDESC = 'Depletion %' THEN BIC_ATA_DPNP
+      WHEN tpm0.F_SPDTDESC = 'Depletion Rate/Case' THEN BIC_ATA_DPNC
+      WHEN tpm0.F_SPDTDESC = 'Display Fixed' THEN BIC_ATL_DSP  --CONFIRM
+      WHEN tpm0.F_SPDTDESC = 'Feature Fixed' THEN BIC_ATL_FTR2 --CONFIRM BIC_ATL_FTR is for Lump Sum
+      WHEN tpm0.F_SPDTDESC = 'Fixed' THEN BIC_ATL_SHLF --CONFIRM
+      WHEN tpm0.F_SPDTDESC = 'OI %' THEN BIC_ATA_OIP
+      WHEN tpm0.F_SPDTDESC = 'OI Rate/Case' THEN BIC_ATA_OIC
+      WHEN tpm0.F_SPDTDESC = 'Scan %' THEN BIC_ATA_SCNP
+      WHEN tpm0.F_SPDTDESC = 'Scan Rate/Case' THEN BIC_ATA_SCNC
+      WHEN tpm0.F_SPDTDESC = 'Slotting Fixed' THEN BIC_ATL_SLT  --CONFIRM
     END AS FORECAST_TRADE_SPEND
 
- FROM uc_prod.dw_s_tpm.s_tbg_am_tpm_tmacpr012
+FROM uc_prod.dw_s_tpm.s_tbg_am_tpm_tmacpr012 tpm0
+LEFT JOIN uc_prod.dw_g_core.calendar_dim startwk
+    ON tpm0.CRM_PLFR = startwk.CAL_DT
+LEFT JOIN uc_prod.dw_g_core.calendar_dim stopwk
+    ON tpm0.CRM_PLTO = stopwk.CAL_DT
   WHERE 1=1
-  AND SALESORG = 'US12'
-  AND CALYEAR = '2025'
-  AND `/BIC/APRMSTD` IN ('Committed','Planned')
+  AND tpm0.SALESORG = 'US12'
+  AND tpm0.CALYEAR = '2025'
+  AND tpm0.`/BIC/APRMSTD` IN ('Committed','Planned')
+  AND startwk.FSCL_YR_WK_ID <= tpm0.CALWEEK 
+  AND stopwk.FSCL_YR_WK_ID >= tpm0.CALWEEK
 )
 
 ,
